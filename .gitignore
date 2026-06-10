@@ -1,0 +1,39 @@
+# Config database — jangan pernah di-push ke repository
+api/config.php
+
+# Environment & secrets
+.env
+.env.local
+*.env
+
+# Dependencies
+vendor/
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Upload folder (kalau ada)
+uploads/
+
+# Cache
+cache/
+tmp/

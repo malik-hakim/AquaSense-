@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanaman Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green-50: #EAF3DE;
+    --green-100: #C0DD97;
+    --green-200: #97C459;
+    --green-400: #639922;
+    --green-600: #3B6D11;
+    --green-800: #27500A;
+    --green-900: #173404;
+    --gray-50: #F1EFE8;
+    --gray-100: #D3D1C7;
+    --gray-200: #B4B2A9;
+    --gray-400: #888780;
+    --gray-600: #5F5E5A;
+    --bg: #f7f9f4;
+    --card: #ffffff;
+    --text: #1a2e0a;
+    --text-muted: #5a6e4a;
+    --border: rgba(63,109,17,0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1a08;
+      --card: #172410;
+      --text: #d4e8b8;
+      --text-muted: #7a9a5a;
+      --border: rgba(144,193,87,0.12);
+    }
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    background: var(--green-800);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    color: var(--green-50);
+    font-size: 1.1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  header h1 span.leaf { font-size: 1.3rem; }
+
+  #conn-status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--green-600);
+    color: var(--green-50);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  #conn-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green-100);
+    display: inline-block;
+  }
+
+  #conn-dot.offline { background: #e24b4a; }
+
+  main { padding: 1.25rem; max-width: 900px; margin: 0 auto; }
+
+  .grid-top {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+
+  .metric-card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .metric-card .value {
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .metric-card .unit {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  .metric-card .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .status-badge.on {
+    background: var(--green-50);
+    color: var(--green-800);
+  }
+
+  .status-badge.off {
+    background: var(--gray-50);
+    color: var(--gray-600);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  .chart-wrap { position: relative; height: 180px; }
+
+  .siram-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--green-600);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .siram-btn:hover { background: var(--green-800); }
+  .siram-btn:active { transform: scale(0.98); }
+  .siram-btn:disabled {
+    background: var(--gray-200);
+    color: var(--gray-400);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  #countdown-wrap {
+    display: none;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  #countdown-bar-bg {
+    height: 6px;
+    background: var(--green-50);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  #countdown-bar {
+    height: 100%;
+    background: var(--green-400);
+    border-radius: 3px;
+    transition: width 1s linear;
+    width: 100%;
+  }
+
+  #countdown-text {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .log-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 0 0 8px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .log-table td {
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+  }
+
+  .log-table tr:last-child td { border-bottom: none; }
+
+  .badge-auto {
+    background: var(--green-50);
+    color: var(--green-800);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .badge-manual {
+    background: #faeeda;
+    color: #633806;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--green-800);
+    color: var(--green-50);
+    padding: 0.65rem 1.25rem;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: transform 0.25s ease;
+    z-index: 99;
+    white-space: nowrap;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .kelembaban-bar-bg {
+    height: 8px;
+    background: var(--green-50);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .kelembaban-bar {
+    height: 100%;
+    background: var(--green-400);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="leaf">🌿</span> Tanaman Monitor</h1>
+  <div id="conn-status">
+    <span id="conn-dot" class="offline"></span>
+    <span id="conn-label">Menghubungkan...</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="grid-top">
+    <div class="metric-card">
+      <div class="label">Kelembaban</div>
+      <div class="value" id="val-kelembaban">--<span class="unit">%</span></div>
+      <div class="kelembaban-bar-bg">
+        <div class="kelembaban-bar" id="kelembaban-bar" style="width:0%"></div>
+      </div>
+      <div class="sub" id="status-tanah">Memuat data...</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Status pompa</div>
+      <div class="value" style="font-size:1rem; padding-top:6px;">
+        <span class="status-badge off" id="pompa-badge">
+          <span class="status-dot"></span>
+          <span id="pompa-label">Mati</span>
+        </span>
+      </div>
+      <div class="sub" id="pompa-sub">Siram terakhir: --</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Total siram hari ini</div>
+      <div class="value" id="val-total">--<span class="unit">x</span></div>
+      <div class="sub" id="sub-total">Memuat...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Grafik kelembaban (24 jam terakhir)</div>
+    <div class="chart-wrap">
+      <canvas id="chartKelembaban"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Kontrol manual</div>
+    <button class="siram-btn" id="btn-siram" onclick="kirimSiram()">
+      💧 Siram sekarang (10 detik)
+    </button>
+    <div id="countdown-wrap">
+      <div id="countdown-text">Menyiram... <strong id="countdown-num">10</strong> detik</div>
+      <div id="countdown-bar-bg"><div id="countdown-bar"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Log riwayat penyiraman</div>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Waktu</th>
+          <th>Durasi</th>
+          <th>Jenis</th>
+          <th>Kelembaban</th>
+        </tr>
+      </thead>
+      <tbody id="log-body">
+        <tr><td colspan="4" style="color:var(--text-muted); padding:1rem 0;">Memuat log...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+const API = 'api/';
+let chart;
+let refreshInterval;
+let countdownTimer;
+
+function showToast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function setKoneksi(online) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  dot.className = online ? '' : 'offline';
+  lbl.textContent = online ? 'Terhubung' : 'Tidak terhubung';
+}
+
+function initChart() {
+  const ctx = document.getElementById('chartKelembaban').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Kelembaban (%)',
+        data: [],
+        borderColor: '#3B6D11',
+        backgroundColor: 'rgba(99,153,34,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#3B6D11',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          min: 0, max: 100,
+          ticks: { color: '#7a9a5a', font: { size: 11 } },
+          grid: { color: 'rgba(63,109,17,0.08)' }
+        },
+        x: {
+          ticks: { color: '#7a9a5a', font: { size: 10 }, maxTicksLimit: 8 },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch(API + 'sensor.php?action=latest');
+    const data = await res.json();
+    setKoneksi(true);
+
+    const k = data.kelembaban ?? 0;
+    document.getElementById('val-kelembaban').innerHTML = Math.round(k) + '<span class="unit">%</span>';
+    document.getElementById('kelembaban-bar').style.width = Math.round(k) + '%';
+
+    let statusTanah = '';
+    if (k < 30) statusTanah = '🌵 Tanah kering';
+    else if (k < 60) statusTanah = '🌱 Kelembaban normal';
+    else statusTanah = '💧 Tanah basah';
+    document.getElementById('status-tanah').textContent = statusTanah;
+
+    const pompaOn = data.pompa_status == 1;
+    const badge = document.getElementById('pompa-badge');
+    badge.className = 'status-badge ' + (pompaOn ? 'on' : 'off');
+    document.getElementById('pompa-label').textContent = pompaOn ? 'Menyala' : 'Mati';
+    document.getElementById('pompa-sub').textContent = 'Siram terakhir: ' + (data.siram_terakhir || '--');
+    document.getElementById('val-total').innerHTML = (data.total_hari_ini ?? '--') + '<span class="unit">x</span>';
+    document.getElementById('sub-total').textContent = 'Per hari ini';
+
+  } catch(e) {
+    setKoneksi(false);
+  }
+}
+
+async function fetchChart() {
+  try {
+    const res = await fetch(API + 'sensor.php?action=history');
+    const data = await res.json();
+    if (!chart) return;
+    chart.data.labels = data.map(d => d.jam);
+    chart.data.datasets[0].data = data.map(d => Math.round(d.kelembaban));
+    chart.update('none');
+  } catch(e) {}
+}
+
+async function fetchLog() {
+  try {
+    const res = await fetch(API + 'sensor.php?action=log');
+    const data = await res.json();
+    const tbody = document.getElementById('log-body');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);padding:1rem 0;">Belum ada riwayat.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.waktu}</td>
+        <td>${r.durasi} detik</td>
+        <td><span class="badge-${r.jenis}">${r.jenis}</span></td>
+        <td>${Math.round(r.kelembaban)}%</td>
+      </tr>
+    `).join('');
+  } catch(e) {}
+}
+
+async function kirimSiram() {
+  const btn = document.getElementById('btn-siram');
+  btn.disabled = true;
+  try {
+    const res = await fetch(API + 'command.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ perintah: 'siram', durasi: 10 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Perintah siram dikirim!');
+      mulaiCountdown(10);
+    } else {
+      showToast('❌ Gagal kirim perintah');
+      btn.disabled = false;
+    }
+  } catch(e) {
+    showToast('❌ Tidak dapat terhubung ke server');
+    btn.disabled = false;
+  }
+}
+
+function mulaiCountdown(detik) {
+  const wrap = document.getElementById('countdown-wrap');
+  const bar = document.getElementById('countdown-bar');
+  const num = document.getElementById('countdown-num');
+  wrap.style.display = 'block';
+  bar.style.width = '100%';
+  let sisa = detik;
+  num.textContent = sisa;
+
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    sisa--;
+    num.textContent = sisa;
+    bar.style.width = (sisa / detik * 100) + '%';
+    if (sisa <= 0) {
+      clearInterval(countdownTimer);
+      wrap.style.display = 'none';
+      document.getElementById('btn-siram').disabled = false;
+      showToast('✅ Penyiraman selesai');
+      fetchLog();
+      fetchStatus();
+    }
+  }, 1000);
+}
+
+function refreshSemua() {
+  fetchStatus();
+  fetchChart();
+  fetchLog();
+}
+
+initChart();
+refreshSemua();
+refreshInterval = setInterval(fetchStatus, 4000);
+setInterval(fetchLog, 15000);
+setInterval(fetchChart, 60000);
+</script>
+</body>
+</html>
