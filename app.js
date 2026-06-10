@@ -34,7 +34,7 @@ function initChart() {
         label: 'Kelembaban (%)',
         data: [],
         borderColor: '#639922',
-        backgroundColor: 'rgba(99,153,34,0.07)',
+        backgroundColor: 'rgba(74,143,26,0.08)',
         borderWidth: 2,
         pointRadius: 3,
         pointBackgroundColor: '#639922',
@@ -50,11 +50,11 @@ function initChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a2612',
-          borderColor: 'rgba(97,153,34,0.2)',
+          backgroundColor: '#ffffff',
+          borderColor: 'rgba(59,109,17,0.15)',
           borderWidth: 1,
-          titleColor: '#7a9858',
-          bodyColor: '#d6eab5',
+          titleColor: '#5a7040',
+          bodyColor: '#1a2e0a',
           padding: 10,
           callbacks: {
             label: ctx => ` ${ctx.parsed.y}%`
@@ -66,16 +66,16 @@ function initChart() {
           min: 0,
           max: 100,
           ticks: {
-            color: '#7a9858',
+            color: '#5a7040',
             font: { size: 11 },
             callback: v => v + '%'
           },
-          grid: { color: 'rgba(97,153,34,0.07)' },
+          grid: { color: 'rgba(59,109,17,0.07)' },
           border: { display: false }
         },
         x: {
           ticks: {
-            color: '#7a9858',
+            color: '#5a7040',
             font: { size: 10 },
             maxTicksLimit: 8
           },

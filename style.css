@@ -16,31 +16,31 @@
   --green-400: #639922;
   --green-600: #3b6d11;
   --green-700: #2e5a0d;
-  --green-800: #224408;
+  --green-800: #1e4509;
   --green-900: #172f05;
 
-  --gray-50:  #f1efe8;
-  --gray-100: #d4d2c8;
-  --gray-200: #b5b3aa;
-  --gray-400: #888780;
-  --gray-600: #5e5d59;
+  --gray-50:  #f5f5f5;
+  --gray-100: #e8e8e8;
+  --gray-200: #d0d0d0;
+  --gray-400: #999999;
+  --gray-600: #666666;
 
-  /* Surface */
-  --bg:     #121a0c;
-  --card:   #1a2612;
-  --card-2: #1f2d15;
+  /* Surface — light theme */
+  --bg:     #f4f7f0;
+  --card:   #ffffff;
+  --card-2: #f0f5ea;
 
   /* Text */
-  --text:       #d6eab5;
-  --text-muted: #7a9858;
+  --text:       #1a2e0a;
+  --text-muted: #5a7040;
 
   /* Borders */
-  --border: rgba(97, 153, 34, 0.14);
+  --border: rgba(59, 109, 17, 0.12);
 
   /* Accent */
-  --accent:       #3b6d11;
-  --accent-light: #639922;
-  --accent-glow:  rgba(99, 153, 34, 0.18);
+  --accent:       #2e6010;
+  --accent-light: #4a8f1a;
+  --accent-glow:  rgba(74, 143, 26, 0.15);
 }
 
 /* ── Base ────────────────────────────────────────────────── */
@@ -53,8 +53,8 @@ body {
 
 /* ── Header ──────────────────────────────────────────────── */
 header {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+  background: var(--green-800);
+  border-bottom: none;
   padding: 0.85rem 1.5rem;
   display: flex;
   align-items: center;
@@ -70,25 +70,25 @@ header {
 .header-logo {
   width: 36px;
   height: 36px;
-  background: var(--accent);
+  background: rgba(255,255,255,0.15);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--green-50);
+  color: #ffffff;
   flex-shrink: 0;
 }
 
 .header-title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text);
+  color: #ffffff;
   line-height: 1.2;
 }
 
 .header-sub {
   font-size: 11px;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.6);
   margin-top: 1px;
 }
 
@@ -100,9 +100,9 @@ header {
   font-size: 12px;
   padding: 5px 12px;
   border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--card-2);
-  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.85);
 }
 
 .conn-dot {
@@ -206,18 +206,18 @@ main {
 }
 
 .status-badge-inline.on {
-  background: rgba(59,109,17,0.25);
-  color: var(--green-100);
+  background: #e4f2d0;
+  color: #2e6010;
 }
 
 .status-badge-inline.dry {
-  background: rgba(190,120,30,0.2);
-  color: #d4a45a;
+  background: #fdf0db;
+  color: #8a5a10;
 }
 
 .status-badge-inline.wet {
-  background: rgba(40,100,180,0.2);
-  color: #78b0e0;
+  background: #dceefa;
+  color: #1a5c8a;
 }
 
 /* Pompa status */
@@ -237,12 +237,12 @@ main {
 }
 
 .pompa-dot.on {
-  background: var(--green-200);
-  box-shadow: 0 0 6px rgba(151,196,89,0.6);
+  background: #4a8f1a;
+  box-shadow: 0 0 6px rgba(74,143,26,0.4);
 }
 
 .pompa-dot.off {
-  background: var(--gray-600);
+  background: var(--gray-400);
 }
 
 .pompa-label {
@@ -397,8 +397,8 @@ main {
 /* Jenis badges */
 .badge-auto {
   display: inline-block;
-  background: rgba(59,109,17,0.25);
-  color: var(--green-100);
+  background: #e4f2d0;
+  color: #2e6010;
   font-size: 11px;
   padding: 2px 9px;
   border-radius: 20px;
@@ -407,8 +407,8 @@ main {
 
 .badge-manual {
   display: inline-block;
-  background: rgba(190,120,30,0.2);
-  color: #d4a45a;
+  background: #fdf0db;
+  color: #8a5a10;
   font-size: 11px;
   padding: 2px 9px;
   border-radius: 20px;
@@ -421,16 +421,16 @@ main {
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%) translateY(70px);
-  background: var(--card-2);
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: var(--green-800);
+  border: none;
+  color: #ffffff;
   padding: 0.65rem 1.4rem;
   border-radius: 10px;
   font-size: 13.5px;
   transition: transform 0.25s ease;
   z-index: 999;
   white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
 
 #toast.show {
