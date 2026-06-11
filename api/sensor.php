@@ -3,55 +3,39 @@ require_once 'config.php';
 
 $action = $_GET['action'] ?? '';
 
-// -------------------------------------------------------
-// ESP32 POST data pompa ke sini (opsional, tidak wajib)
-// POST /api/sensor.php
-// -------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input        = json_decode(file_get_contents('php://input'), true);
-    $pompa_status = intval($input['pompa_status'] ?? 0);
-
-    $db   = getDB();
-    $stmt = $db->prepare("INSERT INTO tbl_sensor (pompa_status, created_at) VALUES (?, NOW())");
-    $stmt->bind_param('i', $pompa_status);
-    $stmt->execute();
-    $db->close();
-
-    echo json_encode(['success' => true]);
+    echo json_encode(['error' => 'Endpoint tidak digunakan']);
     exit();
 }
 
-// -------------------------------------------------------
-// GET: ambil data terbaru untuk dashboard
-// -------------------------------------------------------
 if ($action === 'latest') {
     $db = getDB();
 
-    // Status pompa: baca dari log terbaru yang dikirim ESP32
-    // 'mulai'   → pompa sedang menyala
-    // 'selesai' → pompa sudah mati
-    $logTerbaru = $db->query("SELECT status FROM tbl_log ORDER BY id DESC LIMIT 1")->fetch_assoc();
-    $pompaOn    = ($logTerbaru && $logTerbaru['status'] === 'mulai') ? 1 : 0;
+    $logTerbaru = $db->query(
+        "SELECT status FROM tbl_log ORDER BY id DESC LIMIT 1"
+    )->fetch_assoc();
+    $pompaOn = ($logTerbaru && $logTerbaru['status'] === 'mulai') ? 1 : 0;
 
-    // Siram terakhir (waktu pompa selesai)
-    $last = $db->query("SELECT created_at FROM tbl_log WHERE status='selesai' ORDER BY id DESC LIMIT 1")->fetch_assoc();
+    $last = $db->query(
+        "SELECT created_at FROM tbl_log
+         WHERE status='selesai' ORDER BY id DESC LIMIT 1"
+    )->fetch_assoc();
 
-    // Total siram hari ini
-    $total = $db->query("SELECT COUNT(*) as total FROM tbl_log WHERE DATE(created_at) = CURDATE() AND status='selesai'")->fetch_assoc();
+    $total = $db->query(
+        "SELECT COUNT(*) as total FROM tbl_log
+         WHERE DATE(created_at) = CURDATE() AND status='selesai'"
+    )->fetch_assoc();
 
     $db->close();
 
     echo json_encode([
         'pompa_status'   => $pompaOn,
         'siram_terakhir' => $last ? date('d/m H:i', strtotime($last['created_at'])) : null,
-        'total_hari_ini' => $total['total'] ?? 0,
+        'total_hari_ini' => intval($total['total'] ?? 0),
     ]);
     exit();
 }
 
-// -------------------------------------------------------
-// GET: riwayat penyiraman 7 hari terakhir untuk bar chart
-// -------------------------------------------------------
 if ($action === 'weekly') {
     $db = getDB();
 
@@ -105,9 +89,6 @@ if ($action === 'weekly') {
     exit();
 }
 
-// -------------------------------------------------------
-// GET: log riwayat penyiraman
-// -------------------------------------------------------
 if ($action === 'log') {
     $db = getDB();
 

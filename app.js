@@ -1,12 +1,7 @@
-/* ============================================================
-   Tanaman Monitor — app.js
-   ============================================================ */
-
 const API = 'api/';
 let chart;
 let countdownTimer;
 
-/* ── Toast ──────────────────────────────────────────────── */
 function showToast(msg, dur = 2500) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -14,7 +9,6 @@ function showToast(msg, dur = 2500) {
   setTimeout(() => t.classList.remove('show'), dur);
 }
 
-/* ── Connection indicator ───────────────────────────────── */
 function setKoneksi(online) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
@@ -22,7 +16,6 @@ function setKoneksi(online) {
   lbl.textContent = online ? 'Terhubung' : 'Tidak terhubung';
 }
 
-/* ── Chart init (Bar — penyiraman 7 hari) ───────────────── */
 function initChart() {
   const ctx = document.getElementById('chartSiram').getContext('2d');
   chart = new Chart(ctx, {
@@ -80,24 +73,21 @@ function initChart() {
   });
 }
 
-/* ── Fetch latest status ─────────────────────────────────── */
 async function fetchStatus() {
   try {
     const res  = await fetch(API + 'sensor.php?action=latest');
+    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     setKoneksi(true);
 
-    /* Pompa */
-    const pompaOn = data.pompa_status == 1;
+    const pompaOn  = data.pompa_status == 1;
     const pompaDot = document.getElementById('pompa-dot');
     pompaDot.className = 'pompa-dot ' + (pompaOn ? 'on' : 'off');
     document.getElementById('pompa-label').textContent = pompaOn ? 'Menyala' : 'Mati';
 
-    /* Total siram hari ini */
     document.getElementById('val-total').innerHTML =
       (data.total_hari_ini ?? '--') + '<span class="metric-unit">x</span>';
 
-    /* Siram terakhir */
     document.getElementById('val-siram-terakhir').textContent =
       data.siram_terakhir || '--';
 
@@ -106,22 +96,22 @@ async function fetchStatus() {
   }
 }
 
-/* ── Fetch weekly chart data ─────────────────────────────── */
 async function fetchWeekly() {
   try {
     const res  = await fetch(API + 'sensor.php?action=weekly');
+    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     if (!chart) return;
-    chart.data.labels            = data.map(d => d.hari);
-    chart.data.datasets[0].data  = data.map(d => d.total);
+    chart.data.labels           = data.map(d => d.hari);
+    chart.data.datasets[0].data = data.map(d => d.total);
     chart.update('none');
   } catch (e) { /* silent */ }
 }
 
-/* ── Fetch watering log ─────────────────────────────────── */
 async function fetchLog() {
   try {
     const res  = await fetch(API + 'sensor.php?action=log');
+    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     const tbody = document.getElementById('log-body');
 
@@ -153,7 +143,6 @@ async function fetchLog() {
   } catch (e) { /* silent */ }
 }
 
-/* ── Send water command ─────────────────────────────────── */
 async function kirimSiram() {
   const btn = document.getElementById('btn-siram');
   btn.disabled = true;
@@ -163,10 +152,11 @@ async function kirimSiram() {
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ perintah: 'siram', durasi: 10 })
     });
+    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     if (data.success) {
       showToast('✅ Perintah siram dikirim!');
-      mulaiCountdown(10);
+      mulaiCountdown(13);
     } else {
       showToast('❌ Gagal kirim perintah');
       btn.disabled = false;
@@ -177,22 +167,30 @@ async function kirimSiram() {
   }
 }
 
-/* ── Countdown bar ──────────────────────────────────────── */
-function mulaiCountdown(detik) {
-  const wrap = document.getElementById('countdown-wrap');
-  const bar  = document.getElementById('countdown-bar');
-  const num  = document.getElementById('countdown-num');
+function mulaiCountdown(detikTotal) {
+  const wrap   = document.getElementById('countdown-wrap');
+  const bar    = document.getElementById('countdown-bar');
+  const num    = document.getElementById('countdown-num');
+  const teks   = document.getElementById('countdown-text');
+  const BUFFER = 3;
+  const DURASI_POMPA = detikTotal - BUFFER; // 10 detik
 
   wrap.style.display = 'block';
   bar.style.width    = '100%';
-  let sisa = detik;
-  num.textContent    = sisa;
+  let sisa = detikTotal;
 
   clearInterval(countdownTimer);
   countdownTimer = setInterval(() => {
     sisa--;
-    num.textContent = sisa;
-    bar.style.width = (sisa / detik * 100) + '%';
+    bar.style.width = (sisa / detikTotal * 100) + '%';
+
+    if (sisa >= DURASI_POMPA) {
+      teks.textContent = 'Menunggu ESP32...';
+      num.textContent  = DURASI_POMPA;
+    } else {
+      teks.textContent = 'Menyiram...';
+      num.textContent  = sisa;
+    }
 
     if (sisa <= 0) {
       clearInterval(countdownTimer);
@@ -206,12 +204,11 @@ function mulaiCountdown(detik) {
   }, 1000);
 }
 
-/* ── Boot ───────────────────────────────────────────────── */
 initChart();
 fetchStatus();
 fetchWeekly();
 fetchLog();
 
-setInterval(fetchStatus,  4000);    // status pompa: setiap 4 detik
-setInterval(fetchLog,    15000);    // log: setiap 15 detik
-setInterval(fetchWeekly, 300000);   // chart weekly: setiap 5 menit
+setInterval(fetchStatus,  4000);
+setInterval(fetchLog,    15000);
+setInterval(fetchWeekly, 300000);
