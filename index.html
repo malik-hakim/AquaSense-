@@ -13,9 +13,12 @@
   <header>
     <div class="header-left">
       <div class="header-logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a9 9 0 0 1 9 9c0 3.5-2 6.5-5 8l-4 3-4-3c-3-1.5-5-4.5-5-8a9 9 0 0 1 9-9z"/>
-          <path d="M12 2v20"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.25 2.08258C11.0066 2.13684 10.7675 2.21782 10.5371 2.32554C6.55332 4.18758 4 9.39452 4 13.8567C4 18.0967 7.18341 21.5798 11.25 21.9647V2.08258Z" fill="white"/>
+          <path d="M12.75 21.9647C16.8166 21.5798 20 18.0967 20 13.8567C20 13.4507 19.9789 13.0385 19.9374 12.6232L12.75 19.8106V21.9647Z" fill="white"/>
+          <path d="M18.2597 7.17964C17.8707 6.45482 17.4222 5.76815 16.92 5.14068L12.75 9.31065V12.6893L18.2597 7.17964Z" fill="white"/>
+          <path d="M15.9084 4.03088C15.1732 3.32565 14.3538 2.74195 13.4629 2.32554C13.2325 2.21782 12.9934 2.13684 12.75 2.08258V7.18933L15.9084 4.03088Z" fill="white"/>
+          <path d="M18.9364 8.62421L12.75 14.8106V17.6893L19.5 10.9393L19.6319 10.8074C19.458 10.0697 19.2246 9.33633 18.9364 8.62421Z" fill="white"/>
         </svg>
       </div>
       <div>
@@ -34,27 +37,7 @@
     <!-- METRIC CARDS -->
     <div class="grid-top">
 
-      <!-- Kelembaban Tanah -->
-      <div class="metric-card">
-        <div class="metric-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-          </svg>
-          Kelembaban Tanah
-        </div>
-        <div class="metric-value" id="val-kelembaban">--<span class="metric-unit">%</span></div>
-        <div class="kelembaban-bar-bg">
-          <div class="kelembaban-bar" id="kelembaban-bar" style="width:0%"></div>
-        </div>
-        <div class="status-badge-inline on" id="status-tanah-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          <span id="status-tanah">Memuat data...</span>
-        </div>
-      </div>
-
-      <!-- Status Pompa -->
+      <!-- KARTU 1: Status Pompa -->
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -66,10 +49,10 @@
           <span class="pompa-dot off" id="pompa-dot"></span>
           <span class="pompa-label" id="pompa-label">Mati</span>
         </div>
-        <div class="metric-sub" id="pompa-sub">Siram terakhir: --</div>
+        <div class="metric-sub">Status pompa saat ini</div>
       </div>
 
-      <!-- Total Siram -->
+      <!-- KARTU 2: Total Siram Hari Ini -->
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -81,19 +64,31 @@
         <div class="metric-sub" id="sub-total">Per hari ini</div>
       </div>
 
+      <!-- KARTU 3: Siram Terakhir -->
+      <div class="metric-card">
+        <div class="metric-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Siram Terakhir
+        </div>
+        <div class="metric-value-sm" id="val-siram-terakhir">--</div>
+        <div class="metric-sub">Waktu siram terakhir</div>
+      </div>
+
     </div>
 
-    <!-- CHART -->
+    <!-- CHART: Bar Riwayat Penyiraman 7 Hari -->
     <div class="card">
       <div class="card-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
         </svg>
-        Grafik Kelembaban
-        <span class="card-title-sub">24 jam terakhir</span>
+        Riwayat Penyiraman
+        <span class="card-title-sub">7 hari terakhir</span>
       </div>
       <div class="chart-wrap">
-        <canvas id="chartKelembaban"></canvas>
+        <canvas id="chartSiram"></canvas>
       </div>
     </div>
 
@@ -133,12 +128,11 @@
             <th>Waktu</th>
             <th>Durasi</th>
             <th>Jenis</th>
-            <th>Kelembaban</th>
           </tr>
         </thead>
         <tbody id="log-body">
           <tr>
-            <td colspan="4" class="log-empty">
+            <td colspan="3" class="log-empty">
               <div class="log-empty-inner">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); opacity:0.5">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>

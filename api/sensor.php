@@ -4,18 +4,16 @@ require_once 'config.php';
 $action = $_GET['action'] ?? '';
 
 // -------------------------------------------------------
-// ESP32 POST data sensor ke sini
+// ESP32 POST data pompa ke sini (opsional, tidak wajib)
 // POST /api/sensor.php
-// Body: { "kelembaban": 45, "pompa_status": 0 }
 // -------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $kelembaban   = floatval($input['kelembaban'] ?? 0);
+    $input        = json_decode(file_get_contents('php://input'), true);
     $pompa_status = intval($input['pompa_status'] ?? 0);
 
-    $db = getDB();
-    $stmt = $db->prepare("INSERT INTO tbl_sensor (kelembaban, pompa_status, created_at) VALUES (?, ?, NOW())");
-    $stmt->bind_param('di', $kelembaban, $pompa_status);
+    $db   = getDB();
+    $stmt = $db->prepare("INSERT INTO tbl_sensor (pompa_status, created_at) VALUES (?, NOW())");
+    $stmt->bind_param('i', $pompa_status);
     $stmt->execute();
     $db->close();
 
@@ -29,10 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($action === 'latest') {
     $db = getDB();
 
-    // Data sensor terbaru
-    $row = $db->query("SELECT kelembaban, pompa_status, created_at FROM tbl_sensor ORDER BY id DESC LIMIT 1")->fetch_assoc();
+    // Status pompa: baca dari log terbaru yang dikirim ESP32
+    // 'mulai'   → pompa sedang menyala
+    // 'selesai' → pompa sudah mati
+    $logTerbaru = $db->query("SELECT status FROM tbl_log ORDER BY id DESC LIMIT 1")->fetch_assoc();
+    $pompaOn    = ($logTerbaru && $logTerbaru['status'] === 'mulai') ? 1 : 0;
 
-    // Siram terakhir
+    // Siram terakhir (waktu pompa selesai)
     $last = $db->query("SELECT created_at FROM tbl_log WHERE status='selesai' ORDER BY id DESC LIMIT 1")->fetch_assoc();
 
     // Total siram hari ini
@@ -41,36 +42,66 @@ if ($action === 'latest') {
     $db->close();
 
     echo json_encode([
-        'kelembaban'     => $row ? round($row['kelembaban'], 1) : 0,
-        'pompa_status'   => $row ? intval($row['pompa_status']) : 0,
+        'pompa_status'   => $pompaOn,
         'siram_terakhir' => $last ? date('d/m H:i', strtotime($last['created_at'])) : null,
-        'total_hari_ini' => $total['total'] ?? 0
+        'total_hari_ini' => $total['total'] ?? 0,
     ]);
     exit();
 }
 
 // -------------------------------------------------------
-// GET: history 24 jam terakhir untuk grafik
+// GET: riwayat penyiraman 7 hari terakhir untuk bar chart
 // -------------------------------------------------------
-if ($action === 'history') {
+if ($action === 'weekly') {
     $db = getDB();
+
     $result = $db->query("
         SELECT
-            DATE_FORMAT(created_at, '%H:%i') AS jam,
-            ROUND(AVG(kelembaban), 1) AS kelembaban
-        FROM tbl_sensor
-        WHERE created_at >= NOW() - INTERVAL 24 HOUR
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H')
-        ORDER BY created_at ASC
-        LIMIT 24
+            DATE(created_at) AS tanggal,
+            COUNT(*)         AS total
+        FROM tbl_log
+        WHERE created_at >= CURDATE() - INTERVAL 6 DAY
+          AND status = 'selesai'
+        GROUP BY DATE(created_at)
+        ORDER BY tanggal ASC
     ");
 
-    $data = [];
+    $rows = [];
     while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
+        $rows[] = $row;
     }
     $db->close();
-    echo json_encode($data);
+
+    $namaHari = [
+        'Monday'    => 'Sen',
+        'Tuesday'   => 'Sel',
+        'Wednesday' => 'Rab',
+        'Thursday'  => 'Kam',
+        'Friday'    => 'Jum',
+        'Saturday'  => 'Sab',
+        'Sunday'    => 'Min',
+    ];
+
+    $hasil = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $tgl     = date('Y-m-d', strtotime("-$i day"));
+        $engHari = date('l', strtotime($tgl));
+        $total   = 0;
+
+        foreach ($rows as $r) {
+            if ($r['tanggal'] === $tgl) {
+                $total = (int) $r['total'];
+                break;
+            }
+        }
+
+        $hasil[] = [
+            'hari'  => $namaHari[$engHari] ?? $engHari,
+            'total' => $total,
+        ];
+    }
+
+    echo json_encode($hasil);
     exit();
 }
 
@@ -79,13 +110,14 @@ if ($action === 'history') {
 // -------------------------------------------------------
 if ($action === 'log') {
     $db = getDB();
+
     $result = $db->query("
         SELECT
             DATE_FORMAT(created_at, '%d/%m %H:%i') AS waktu,
             durasi,
-            jenis,
-            kelembaban_saat_itu AS kelembaban
+            jenis
         FROM tbl_log
+        WHERE status = 'selesai'
         ORDER BY id DESC
         LIMIT 20
     ");
@@ -95,6 +127,7 @@ if ($action === 'log') {
         $data[] = $row;
     }
     $db->close();
+
     echo json_encode($data);
     exit();
 }

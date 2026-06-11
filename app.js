@@ -4,7 +4,6 @@
 
 const API = 'api/';
 let chart;
-let refreshInterval;
 let countdownTimer;
 
 /* ── Toast ──────────────────────────────────────────────── */
@@ -23,30 +22,25 @@ function setKoneksi(online) {
   lbl.textContent = online ? 'Terhubung' : 'Tidak terhubung';
 }
 
-/* ── Chart init ─────────────────────────────────────────── */
+/* ── Chart init (Bar — penyiraman 7 hari) ───────────────── */
 function initChart() {
-  const ctx = document.getElementById('chartKelembaban').getContext('2d');
+  const ctx = document.getElementById('chartSiram').getContext('2d');
   chart = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: [],
+      labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
       datasets: [{
-        label: 'Kelembaban (%)',
-        data: [],
-        borderColor: '#639922',
-        backgroundColor: 'rgba(74,143,26,0.08)',
-        borderWidth: 2,
-        pointRadius: 3,
-        pointBackgroundColor: '#639922',
-        pointBorderColor: 'transparent',
-        tension: 0.4,
-        fill: true
+        label: 'Jumlah Siram',
+        data: [0, 0, 0, 0, 0, 0, 0],
+        backgroundColor: 'rgba(99,153,34,0.75)',
+        hoverBackgroundColor: '#639922',
+        borderRadius: 6,
+        borderSkipped: false
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -57,18 +51,18 @@ function initChart() {
           bodyColor: '#1a2e0a',
           padding: 10,
           callbacks: {
-            label: ctx => ` ${ctx.parsed.y}%`
+            label: ctx => ` ${ctx.parsed.y}x siram`
           }
         }
       },
       scales: {
         y: {
-          min: 0,
-          max: 100,
+          beginAtZero: true,
           ticks: {
             color: '#5a7040',
             font: { size: 11 },
-            callback: v => v + '%'
+            stepSize: 1,
+            callback: v => Number.isInteger(v) ? v + 'x' : ''
           },
           grid: { color: 'rgba(59,109,17,0.07)' },
           border: { display: false }
@@ -76,8 +70,7 @@ function initChart() {
         x: {
           ticks: {
             color: '#5a7040',
-            font: { size: 10 },
-            maxTicksLimit: 8
+            font: { size: 11 }
           },
           grid: { display: false },
           border: { display: false }
@@ -87,58 +80,40 @@ function initChart() {
   });
 }
 
-/* ── Fetch latest sensor data ───────────────────────────── */
+/* ── Fetch latest status ─────────────────────────────────── */
 async function fetchStatus() {
   try {
     const res  = await fetch(API + 'sensor.php?action=latest');
     const data = await res.json();
     setKoneksi(true);
 
-    const k = data.kelembaban ?? 0;
-    document.getElementById('val-kelembaban').innerHTML =
-      Math.round(k) + '<span class="metric-unit">%</span>';
-    document.getElementById('kelembaban-bar').style.width = Math.round(k) + '%';
-
-    /* Status tanah */
-    const badge = document.getElementById('status-tanah-badge');
-    const label = document.getElementById('status-tanah');
-    if (k < 30) {
-      badge.className = 'status-badge-inline dry';
-      label.textContent = 'Tanah kering';
-    } else if (k < 60) {
-      badge.className = 'status-badge-inline on';
-      label.textContent = 'Kelembaban normal';
-    } else {
-      badge.className = 'status-badge-inline wet';
-      label.textContent = 'Tanah basah';
-    }
-
     /* Pompa */
-    const pompaOn   = data.pompa_status == 1;
-    const pompaDot  = document.getElementById('pompa-dot');
+    const pompaOn = data.pompa_status == 1;
+    const pompaDot = document.getElementById('pompa-dot');
     pompaDot.className = 'pompa-dot ' + (pompaOn ? 'on' : 'off');
     document.getElementById('pompa-label').textContent = pompaOn ? 'Menyala' : 'Mati';
-    document.getElementById('pompa-sub').textContent =
-      'Siram terakhir: ' + (data.siram_terakhir || '--');
 
-    /* Total */
+    /* Total siram hari ini */
     document.getElementById('val-total').innerHTML =
       (data.total_hari_ini ?? '--') + '<span class="metric-unit">x</span>';
-    document.getElementById('sub-total').textContent = 'Per hari ini';
+
+    /* Siram terakhir */
+    document.getElementById('val-siram-terakhir').textContent =
+      data.siram_terakhir || '--';
 
   } catch (e) {
     setKoneksi(false);
   }
 }
 
-/* ── Fetch chart history ────────────────────────────────── */
-async function fetchChart() {
+/* ── Fetch weekly chart data ─────────────────────────────── */
+async function fetchWeekly() {
   try {
-    const res  = await fetch(API + 'sensor.php?action=history');
+    const res  = await fetch(API + 'sensor.php?action=weekly');
     const data = await res.json();
     if (!chart) return;
-    chart.data.labels              = data.map(d => d.jam);
-    chart.data.datasets[0].data   = data.map(d => Math.round(d.kelembaban));
+    chart.data.labels            = data.map(d => d.hari);
+    chart.data.datasets[0].data  = data.map(d => d.total);
     chart.update('none');
   } catch (e) { /* silent */ }
 }
@@ -153,7 +128,7 @@ async function fetchLog() {
     if (!data.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="4" class="log-empty">
+          <td colspan="3" class="log-empty">
             <div class="log-empty-inner">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
@@ -172,7 +147,6 @@ async function fetchLog() {
         <td>${r.waktu}</td>
         <td>${r.durasi} detik</td>
         <td><span class="badge-${r.jenis}">${r.jenis}</span></td>
-        <td>${Math.round(r.kelembaban)}%</td>
       </tr>
     `).join('');
 
@@ -217,31 +191,27 @@ function mulaiCountdown(detik) {
   clearInterval(countdownTimer);
   countdownTimer = setInterval(() => {
     sisa--;
-    num.textContent    = sisa;
-    bar.style.width    = (sisa / detik * 100) + '%';
+    num.textContent = sisa;
+    bar.style.width = (sisa / detik * 100) + '%';
 
     if (sisa <= 0) {
       clearInterval(countdownTimer);
       wrap.style.display = 'none';
       document.getElementById('btn-siram').disabled = false;
       showToast('✅ Penyiraman selesai');
-      fetchLog();
       fetchStatus();
+      fetchLog();
+      fetchWeekly();
     }
   }, 1000);
 }
 
-/* ── Refresh all data ───────────────────────────────────── */
-function refreshSemua() {
-  fetchStatus();
-  fetchChart();
-  fetchLog();
-}
-
 /* ── Boot ───────────────────────────────────────────────── */
 initChart();
-refreshSemua();
+fetchStatus();
+fetchWeekly();
+fetchLog();
 
-refreshInterval = setInterval(fetchStatus, 4000);   // sensor: setiap 4 detik
-setInterval(fetchLog,    15000);                     // log: setiap 15 detik
-setInterval(fetchChart,  60000);                     // chart: setiap 1 menit
+setInterval(fetchStatus,  4000);    // status pompa: setiap 4 detik
+setInterval(fetchLog,    15000);    // log: setiap 15 detik
+setInterval(fetchWeekly, 300000);   // chart weekly: setiap 5 menit
